@@ -1,0 +1,71 @@
+#!groovy
+
+def artifact
+def GitUrl='https://github.com/arundhiman86/sonar-example.git'
+def SonarCredentialsId='8eab617c-2175-4bc9-94dd-f5edd5a0982c'
+def SonarHostUrl='http://192.168.3.138:8084'
+def RemoteServer='pre-prod'
+def RemoteDirectory='/home/jenkins/'
+
+pipeline {
+    agent any
+    
+    tools { 
+        maven 'M3' 
+        jdk 'JDK1.8'
+    }
+    
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git "${GitUrl}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn clean install'
+                script {
+                    artifact = sh(returnStdout: true, script: """artifactId=`\$M2_HOME/bin/mvn -q -Dexec.executable='echo' -Dexec.args='\${project.artifactId}' --non-recursive org.codehaus.mojo:exec-maven-plugin:1.3.1:exec` && 
+                                                         version=`\$M2_HOME/bin/mvn -q -Dexec.executable='echo' -Dexec.args='\${project.version}' --non-recursive org.codehaus.mojo:exec-maven-plugin:1.3.1:exec` && 
+                                                         echo \$artifactId-\$version""")
+                }
+                echo "${artifact}"
+            }
+        }
+        stage('SonarQube Analysis') { 
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${SonarCredentialsId}", passwordVariable: 'SonarPass', usernameVariable: 'SonarUser')]) {
+                    sh "mvn sonar:sonar -Dsonar.host.url=${SonarHostUrl} -Dsonar.login=\${SonarUser} -Dsonar.password=\${SonarPass}"
+                }
+            }
+        }
+        stage('Cleanup Workspace') {
+            steps {
+                cleanWs deleteDirs: true
+            }
+        }
+        stage('Deploy to Nexus') {
+            steps {
+                sh 'echo Deploying..'
+            }
+        }
+stage('Promotion') {
+    input {
+        message 'Promote to Pre-Prod?'
+        ok 'Promote'
+        submitter 'lead_dev'
+        parameters {
+            string defaultValue: '', description: 'Approver Comments', name: 'COMMENT', trim: false
+        }
+    }
+    steps {
+            echo "Approver Comments: $COMMENT"
+    }
+}
+        stage('Deploy to Pre-Prod') {
+            steps {
+                sshPublisher failOnError: true, publishers: [sshPublisherDesc(configName: "${RemoteServer}", transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: 'ls -lrt', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: "${RemoteDirectory}", remoteDirectorySDF: false, removePrefix: '', sourceFiles: '**/*.jar')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)]
+            }
+        }
+    }
+}
