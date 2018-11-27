@@ -59,7 +59,7 @@ stage('Promotion') {
     input {
         message 'Promote to Pre-Prod?'
         ok 'Promote'
-        submitter 'lead_dev'
+        submitter 'dev'
         parameters {
             string defaultValue: '', description: 'Approver Comments', name: 'COMMENT', trim: false
         }
