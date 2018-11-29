@@ -8,7 +8,11 @@ def RemoteServer='pre-prod'
 def RemoteDirectory='/home/jenkins/'
 
 pipeline {
-    agent any
+    agent {
+       node {
+          label 'slave1_node'
+       }
+    }	  
     
     tools { 
         maven 'M3' 
