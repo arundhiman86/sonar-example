@@ -7,7 +7,7 @@ def SonarHostUrl='http://192.168.3.138:8084'
 def RemoteServer='pre-prod'
 def RemoteDirectory='/home/jenkins/'
 
-def props = readProperties file:'./jenkinsfile.properties'
+def props = readProperties file:'jenkinsfile.properties'
 
 echo "${Monday}"
 echo "${Tuesday}"
