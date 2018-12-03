@@ -53,7 +53,6 @@ pipeline {
                                                          echo \$artifactId-\$version""")
                 }
                 echo "${artifact}"
-                echo "var1=${var1}"
             }
         }
         stage('SonarQube Analysis') {
